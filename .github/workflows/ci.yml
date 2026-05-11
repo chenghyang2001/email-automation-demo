@@ -1,0 +1,52 @@
+# CI 工作流程：語法檢查 + 冒煙測試 + 乾跑驗證
+# 觸發於 main push 或目標 main 的 PR
+# 注意：dry-run 不需要真實 API key，所有 env 使用虛假值
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax check
+        run: |
+          python -m py_compile email_filter.py
+          python -m py_compile summarizer.py
+          python -m py_compile notion_creator.py
+          python -m py_compile telegram_briefer.py
+          python -m py_compile cache.py
+          python -m py_compile run_briefing.py
+          python -m py_compile gmail_fetcher.py
+
+      - name: Smoke tests
+        run: |
+          python email_filter.py
+          python summarizer.py
+          python notion_creator.py
+
+      - name: Dry run
+        env:
+          TELEGRAM_BOT_TOKEN: dummy_token
+          TELEGRAM_CHAT_ID: "0"
+          NOTION_DATABASE_ID: dummy_id
+        run: python run_briefing.py --dry-run
