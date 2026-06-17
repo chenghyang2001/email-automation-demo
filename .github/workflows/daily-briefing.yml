@@ -1,12 +1,12 @@
 # daily-briefing.yml
-# 排程說明：UTC 01:00 = Asia/Taipei 09:00，週一至週五自動執行每日晨報
+# 排程說明：UTC 23:30 = Asia/Taipei 07:30（隔日），週一至週五自動執行每日晨報
 # 執行順序：gmail_fetcher.py → run_briefing.py（兩個獨立 step，前者失敗即停止）
 
 name: Daily Morning Briefing
 
 on:
   schedule:
-    - cron: '0 1 * * 1-5'   # UTC 01:00 = Taiwan (Asia/Taipei) 09:00，週一至週五
+    - cron: '30 23 * * 0-4'   # UTC 23:30(隔日) = Taiwan (Asia/Taipei) 07:30，週一至週五
   workflow_dispatch:          # 允許手動觸發，方便測試
 
 jobs:
