@@ -9,5 +9,9 @@ credentials.json
 # 機器生成的 session 快照（每輪對話自動刷新，不進版本控制）
 .claude/session-state.md
 
+# 個人本機設定（只屬於這台機器，不同步到團隊）
+.claude/settings.local.json
+
 # Office 暫存鎖檔（PowerPoint/Word/Excel 開啟時產生，~$ 開頭）
 ~$*
+.gitnexus
