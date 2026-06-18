@@ -12,12 +12,14 @@
 每天早上掃描 Gmail，把需要行動的信件自動轉成 Notion 任務卡片，並透過 Telegram 發送晨間簡報。
 
 **四段 Pipeline**：
+
 ```
 Gmail MCP → email_filter.py → summarizer.py → notion_creator.py → telegram_briefer.py
 （取信）       （雙層過濾）       （AI 摘要）       （建任務）           （晨報）
 ```
 
 **執行方式**：
+
 ```bash
 # 正式執行
 python run_briefing.py
@@ -46,6 +48,7 @@ python run_briefing.py --dry-run
 | Telegram Bot API | v7 | 直接 HTTP POST，不需 SDK |
 
 **安裝**：
+
 ```bash
 cd email-automation-演練
 pip install -r requirements.txt
@@ -72,6 +75,13 @@ email-automation-演練/
 ├── requirements.txt
 ├── scripts/
 │   └── setup_gmail_token.py  # 一次性 OAuth2 Token 設定工具
+├── docs/
+│   └── architecture.md       # 系統架構文件（六節：概觀/組件/互動/資料流/ADR/部署）
+├── mermaid/                  # 架構圖表（arch-deck 產出，跟著 repo 走）
+│   └── 20260618-email-automation/
+│       ├── mmd/              # 5 個 Mermaid 原始碼（.mmd）
+│       ├── png/              # 5 張渲染圖（心智圖/流程圖/系統架構圖/序列圖/狀態圖）
+│       └── *.pptx           # 圖表合輯簡報（封面 + 5 頁）
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml             # PR/push 觸發：syntax check + dry-run
@@ -82,6 +92,7 @@ email-automation-演練/
 ```
 
 **設計模式**：
+
 - **主控輕量**：`run_briefing.py` 只負責依序呼叫模組、處理錯誤日誌，不含業務邏輯
 - **Graceful Failure**：每封信獨立 try/except，單封失敗不影響整體流程
 - **冪等快取**：`cache.py` 記錄已處理的 `message_id`，重複執行不重複建 Notion 任務

@@ -1,0 +1,19 @@
+flowchart TD
+    A[啟動 run_briefing] --> B{檢查環境變數}
+    B -->|缺少| C[sys.exit 1 終止]
+    B -->|完整| D[抓取今日郵件]
+    D --> E{預取快取存在}
+    E -->|是| F[讀 today_emails.json]
+    E -->|否| G[claude -p 呼叫 Gmail MCP]
+    F --> H[cache 去重]
+    G --> H
+    H --> I[L1 規則過濾]
+    I -->|命中規則| J[計入 L1 跳過]
+    I -->|通過| K[L2 AI 判斷]
+    K -->|AI 回答 NO| L[計入 L2 跳過]
+    K -->|保留| M[summarize 摘要為 JSON]
+    M --> N[create Notion 任務]
+    N --> O[mark_processed 更新快取]
+    O --> P[format_briefing 組裝]
+    P --> Q[send_telegram 發送]
+    Q --> R[最終統計輸出]

@@ -1,0 +1,18 @@
+block-beta
+  columns 3
+  orch["run_briefing 主協調器"]:3
+  space:3
+  cache["cache 冪等快取"]
+  filter["email_filter L1+L2 過濾"]
+  summ["summarizer AI 摘要"]
+  notion["notion_creator 建任務"]
+  tg["telegram_briefer 晨報"]
+  fetcher["gmail_fetcher CI 取信"]
+  space:3
+  gmail["Gmail MCP / OAuth2"]
+  claude["Claude Haiku API / CLI"]
+  ext["Notion + Telegram"]
+  orch --> filter
+  filter --> summ
+  summ --> notion
+  notion --> tg

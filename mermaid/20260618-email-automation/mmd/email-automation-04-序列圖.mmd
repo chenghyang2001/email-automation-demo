@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant Cron as GitHub Actions
+    participant GF as gmail_fetcher
+    participant RB as run_briefing
+    participant EF as email_filter
+    participant SM as summarizer
+    participant NC as notion_creator
+    participant TG as telegram_briefer
+    Cron->>GF: 07:30 觸發取信
+    GF->>GF: Gmail OAuth2 抓今日信
+    GF-->>RB: today_emails.json 預取快取
+    Cron->>RB: 執行晨報流程
+    RB->>EF: filter_emails 信件清單
+    EF->>EF: L1 規則 + L2 Haiku 判斷
+    EF-->>RB: 保留的信件
+    loop 每封保留信件
+        RB->>SM: summarize_email
+        SM-->>RB: JSON 摘要
+        RB->>NC: create_notion_task
+        NC-->>RB: Notion 頁面 URL
+    end
+    RB->>TG: format_briefing + send
+    TG-->>RB: 發送結果
