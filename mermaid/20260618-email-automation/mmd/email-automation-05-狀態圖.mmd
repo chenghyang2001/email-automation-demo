@@ -9,6 +9,8 @@ stateDiagram-v2
     L2判斷 --> 摘要中: 保留
     摘要中 --> 略過: 摘要失敗回傳 None
     摘要中 --> 建任務中: JSON 成功
-    建任務中 --> 已完成: mark_processed
+    建任務中 --> 建事件中: 有截止日且有 GCAL_TOKEN
+    建任務中 --> 已完成: 無截止日直接 mark_processed
+    建事件中 --> 已完成: Calendar 成敗皆 mark_processed
     已完成 --> [*]
     略過 --> [*]

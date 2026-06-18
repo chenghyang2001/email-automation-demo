@@ -8,15 +8,19 @@
 
 **專案名稱**：email-automation-演練
 
-**目的**：示範《Claude Code Pro》第十二章的四段 Pipeline 自動化架構。
-每天早上掃描 Gmail，把需要行動的信件自動轉成 Notion 任務卡片，並透過 Telegram 發送晨間簡報。
+**目的**：示範《Claude Code Pro》第十二章的多段 Pipeline 自動化架構。
+每天早上掃描 Gmail，把需要行動的信件自動轉成 Notion 任務卡片 +（有截止日時）Google Calendar 全天事件，
+並透過 Telegram + LINE 雙管道發送晨間簡報。
 
-**四段 Pipeline**：
+**Pipeline**：
 
 ```
-Gmail MCP → email_filter.py → summarizer.py → notion_creator.py → telegram_briefer.py
-（取信）       （雙層過濾）       （AI 摘要）       （建任務）           （晨報）
+Gmail → email_filter → summarizer → ┬─ notion_creator（任務卡片）
+（取信）  （雙層過濾）   （AI 摘要）    ├─ calendar_creator（全天事件，有截止日才建）
+                                     └─ telegram_briefer + line_briefer（晨報雙管道）
 ```
+
+> 輸出管道一律「選填 + 失敗隔離」：LINE / Calendar 缺對應環境變數即略過，單一管道失敗不影響其他與整體流程。
 
 **執行方式**：
 
@@ -46,6 +50,8 @@ python run_briefing.py --dry-run
 | Gmail MCP | claude.ai 內建 | 本機執行時由 `claude -p` 呼叫 |
 | Notion MCP | claude.ai 內建 | 本機執行時由 `claude -p` 呼叫 |
 | Telegram Bot API | v7 | 直接 HTTP POST，不需 SDK |
+| LINE Messaging API | v2 | push message，直接 HTTP POST（非已停用的 LINE Notify）|
+| Google Calendar API | v3 | `events.insert` 建全天事件（`calendar.events` scope）|
 
 **安裝**：
 
@@ -66,7 +72,9 @@ email-automation-演練/
 ├── email_filter.py        # Layer1 規則過濾 + Layer2 Claude AI 判斷
 ├── summarizer.py          # Claude AI → JSON-only 結構化摘要
 ├── notion_creator.py      # 建立 Notion 任務卡片（雙模式）
+├── calendar_creator.py    # 建立 Google Calendar 全天事件（有截止日才建，選填）
 ├── telegram_briefer.py    # Telegram Bot API → 晨間簡報
+├── line_briefer.py        # LINE Messaging API push → 晨間簡報（選填）
 ├── gmail_fetcher.py       # Gmail OAuth2 直接抓信（CI/CD 用）
 ├── cache.py               # 冪等快取（.cache/processed_ids.json）
 ├── CLAUDE.md              # 本文件
@@ -79,7 +87,7 @@ email-automation-演練/
 │   └── architecture.md       # 系統架構文件（六節：概觀/組件/互動/資料流/ADR/部署）
 ├── mermaid/                  # 架構圖表（arch-deck 產出，跟著 repo 走）
 │   └── 20260618-email-automation/
-│       ├── mmd/              # 5 個 Mermaid 原始碼（.mmd）
+│       ├── mmd/              # 5 個 Mermaid 原始碼（.mmd，含 LINE + Calendar 輸出）
 │       ├── png/              # 5 張渲染圖（心智圖/流程圖/系統架構圖/序列圖/狀態圖）
 │       └── *.pptx           # 圖表合輯簡報（封面 + 5 頁）
 ├── .github/
@@ -95,8 +103,10 @@ email-automation-演練/
 
 - **主控輕量**：`run_briefing.py` 只負責依序呼叫模組、處理錯誤日誌，不含業務邏輯
 - **Graceful Failure**：每封信獨立 try/except，單封失敗不影響整體流程
-- **冪等快取**：`cache.py` 記錄已處理的 `message_id`，重複執行不重複建 Notion 任務
+- **冪等快取**：`cache.py` 記錄已處理的 `message_id`，重複執行不重複建 Notion 任務/Calendar 事件
 - **MCP 委派**：Gmail 與 Notion 操作一律透過 `claude -p` 呼叫 MCP，不直接使用 API Key
+- **多輸出管道（選填 + 失敗隔離）**：Notion（必）+ Calendar / Telegram / LINE。Calendar 與 LINE 缺對應環境變數即略過；各管道獨立 try/except，單一失敗不影響其他與整體流程
+- **Calendar 冪等保護**：建事件的 try/except 不可 raise，否則會跳過 `mark_processed` 導致重跑重建（全天事件 `end.date` 取截止日 +1 天，Google exclusive 規則）
 
 ---
 
@@ -141,3 +151,106 @@ email-automation-演練/
 - Telegram 發送失敗不可讓整個程式崩潰（try/except，最多 retry 一次）
 - `--dry-run` 模式下，所有 `claude -p` 呼叫（摘要除外）必須跳過，改印 `[DRY RUN]` 訊息
 - 每次執行完必須印出統計：掃描幾封 / 跳過幾封 / 處理幾封 / 建立幾個 Notion 任務
+
+<!-- gitnexus:start -->
+# GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **email-automation-demo** (105 symbols, 175 relationships, 5 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+
+> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+
+## Always Do
+
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
+- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+
+## When Debugging
+
+1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
+2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
+3. `READ gitnexus://repo/email-automation-demo/process/{processName}` — trace the full execution flow step by step
+4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
+
+## When Refactoring
+
+- **Renaming**: MUST use `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` first. Review the preview — graph edits are safe, text_search edits need manual review. Then run with `dry_run: false`.
+- **Extracting/Splitting**: MUST run `gitnexus_context({name: "target"})` to see all incoming/outgoing refs, then `gitnexus_impact({target: "target", direction: "upstream"})` to find all external callers before moving code.
+- After any refactor: run `gitnexus_detect_changes({scope: "all"})` to verify only expected files changed.
+
+## Never Do
+
+- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
+- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+
+## Tools Quick Reference
+
+| Tool | When to use | Command |
+|------|-------------|---------|
+| `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
+| `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
+| `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
+| `detect_changes` | Pre-commit scope check | `gitnexus_detect_changes({scope: "staged"})` |
+| `rename` | Safe multi-file rename | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
+| `cypher` | Custom graph queries | `gitnexus_cypher({query: "MATCH ..."})` |
+
+## Impact Risk Levels
+
+| Depth | Meaning | Action |
+|-------|---------|--------|
+| d=1 | WILL BREAK — direct callers/importers | MUST update these |
+| d=2 | LIKELY AFFECTED — indirect deps | Should test |
+| d=3 | MAY NEED TESTING — transitive | Test if critical path |
+
+## Resources
+
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/email-automation-demo/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/email-automation-demo/clusters` | All functional areas |
+| `gitnexus://repo/email-automation-demo/processes` | All execution flows |
+| `gitnexus://repo/email-automation-demo/process/{name}` | Step-by-step execution trace |
+
+## Self-Check Before Finishing
+
+Before completing any code modification task, verify:
+
+1. `gitnexus_impact` was run for all modified symbols
+2. No HIGH/CRITICAL risk warnings were ignored
+3. `gitnexus_detect_changes()` confirms changes match expected scope
+4. All d=1 (WILL BREAK) dependents were updated
+
+## Keeping the Index Fresh
+
+After committing code changes, the GitNexus index becomes stale. Re-run analyze to update it:
+
+```bash
+npx gitnexus analyze
+```
+
+If the index previously included embeddings, preserve them by adding `--embeddings`:
+
+```bash
+npx gitnexus analyze --embeddings
+```
+
+To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.embeddings` field shows the count (0 means no embeddings). **Running analyze without `--embeddings` will delete any previously generated embeddings.**
+
+> Claude Code users: A PostToolUse hook handles this automatically after `git commit` and `git merge`.
+
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:end -->

@@ -5,7 +5,9 @@ sequenceDiagram
     participant EF as email_filter
     participant SM as summarizer
     participant NC as notion_creator
+    participant CAL as calendar_creator
     participant TG as telegram_briefer
+    participant LN as line_briefer
     Cron->>GF: 07:30 觸發取信
     GF->>GF: Gmail OAuth2 抓今日信
     GF-->>RB: today_emails.json 預取快取
@@ -18,6 +20,14 @@ sequenceDiagram
         SM-->>RB: JSON 摘要
         RB->>NC: create_notion_task
         NC-->>RB: Notion 頁面 URL
+        alt 有截止日 + GCAL_TOKEN_JSON
+            RB->>CAL: create_calendar_event
+            CAL-->>RB: Calendar htmlLink
+        end
     end
     RB->>TG: format_briefing + send
     TG-->>RB: 發送結果
+    opt 有 LINE secrets
+        RB->>LN: send_line 同一串訊息
+        LN-->>RB: 發送結果
+    end

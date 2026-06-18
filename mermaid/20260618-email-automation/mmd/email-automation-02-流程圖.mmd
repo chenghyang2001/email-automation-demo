@@ -13,7 +13,13 @@ flowchart TD
     K -->|AI 回答 NO| L[計入 L2 跳過]
     K -->|保留| M[summarize 摘要為 JSON]
     M --> N[create Notion 任務]
-    N --> O[mark_processed 更新快取]
+    N --> N2{有截止日且有 GCAL_TOKEN}
+    N2 -->|是| N3[create Calendar 全天事件]
+    N2 -->|否| O[mark_processed 更新快取]
+    N3 --> O
     O --> P[format_briefing 組裝]
     P --> Q[send_telegram 發送]
-    Q --> R[最終統計輸出]
+    Q --> S{有 LINE secrets}
+    S -->|是| T[send_line 推播]
+    S -->|否| R[最終統計輸出]
+    T --> R
