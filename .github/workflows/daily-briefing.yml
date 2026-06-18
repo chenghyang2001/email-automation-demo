@@ -40,3 +40,6 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_TO: ${{ secrets.LINE_TO }}
+          # Calendar 為選填：未設定 secrets → 空字串 → run_briefing 選填 gate 自動略過
+          GCAL_TOKEN_JSON: ${{ secrets.GCAL_TOKEN_JSON }}
+          GCAL_CALENDAR_ID: ${{ secrets.GCAL_CALENDAR_ID }}

@@ -37,12 +37,15 @@ jobs:
           python -m py_compile cache.py
           python -m py_compile run_briefing.py
           python -m py_compile gmail_fetcher.py
+          python -m py_compile line_briefer.py
+          python -m py_compile calendar_creator.py
 
       - name: Smoke tests
         run: |
           python email_filter.py
           python summarizer.py
           python notion_creator.py
+          python calendar_creator.py
           python line_briefer.py
 
       - name: Dry run

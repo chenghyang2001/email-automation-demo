@@ -23,6 +23,7 @@ from cache import load_cache, save_cache, is_processed, mark_processed
 from email_filter import filter_emails
 from summarizer import summarize_email
 from notion_creator import create_notion_task
+from calendar_creator import create_calendar_event
 from telegram_briefer import format_briefing, send_telegram
 from line_briefer import send_line
 
@@ -181,10 +182,31 @@ def main() -> None:
                     f"deadline={summary.get('deadline')}"
                 )
                 notion_urls.append(None)
+                # dry-run 不建立 Calendar 事件（與 Notion 一致，只印不做）
+                print("  [DRY RUN] Calendar 不建立")
             else:
                 url = create_notion_task(summary, email, db_id)
                 print(f"  [Notion] 建立任務：{url}")
                 notion_urls.append(url)
+
+                # ── Calendar（選填）：只在有截止日且已設定 GCAL_TOKEN_JSON 時建立 ──
+                # GCAL_CALENDAR_ID 用 .get(..., "primary")：它是選填且有合理預設
+                #（使用者主日曆），非遮蓋必填機密，故刻意不走 _check_env 強檢查。
+                if summary.get("detected_deadline") and os.environ.get("GCAL_TOKEN_JSON"):
+                    # 內層獨立 try/except：Calendar 失敗「不可」往外丟，
+                    # 否則外層 per-email try/except 會 continue 跳過下方 mark_processed，
+                    # 導致此信下次重跑時又被當新信重建 Notion，破壞冪等性。
+                    try:
+                        calendar_id = os.environ.get("GCAL_CALENDAR_ID", "primary")
+                        cal_url = create_calendar_event(summary, email, calendar_id)
+                        print(f"  [Calendar] 建立事件：{cal_url}")
+                    except Exception as cal_exc:
+                        print(
+                            f"  [Calendar] 警告：建立事件失敗：{cal_exc}",
+                            file=sys.stderr,
+                        )
+                else:
+                    print("  [Calendar] 無截止日或未設定 GCAL_TOKEN_JSON，略過")
 
             summaries.append(summary)
             # 每封處理完就更新 cache，避免中途失敗時重複處理
