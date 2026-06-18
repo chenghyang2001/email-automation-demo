@@ -15,8 +15,6 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-
-CLAUDE_CMD = "claude.cmd" if sys.platform == "win32" else "claude"
 from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
@@ -26,6 +24,11 @@ from email_filter import filter_emails
 from summarizer import summarize_email
 from notion_creator import create_notion_task
 from telegram_briefer import format_briefing, send_telegram
+from line_briefer import send_line
+
+# 定義在所有 import 之後，避免夾在 import 區塊中間觸發 ruff E402。
+# Windows 的 claude CLI 是 claude.cmd，非 Windows 為 claude。
+CLAUDE_CMD = "claude.cmd" if sys.platform == "win32" else "claude"
 
 
 def _check_env() -> None:
@@ -211,6 +214,23 @@ def main() -> None:
         print(f"[Telegram] 發送結果：{result}")
     else:
         print("[DRY RUN] Telegram 不發送")
+
+    # ── Step 6b：LINE 推播（選填管道，與 Telegram 共用同一則 message）──
+    # LINE 為選填：缺少設定時略過而非中止，故用 .get() 不用 _check_env() 強檢查。
+    if not args.dry_run:
+        line_token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+        line_to = os.environ.get("LINE_TO")
+        if line_token and line_to:
+            try:
+                line_result = send_line(message, line_token, line_to)
+                print(f"[LINE] 發送結果：{line_result}")
+            except Exception as exc:
+                # LINE 失敗不可中斷整體流程（比照 Telegram 的 Graceful Failure）
+                print(f"[LINE] 發送時發生錯誤：{exc}", file=sys.stderr)
+        else:
+            print("[LINE] 未設定 LINE_CHANNEL_ACCESS_TOKEN / LINE_TO，略過")
+    else:
+        print("[DRY RUN] LINE 不發送")
 
     # ── 最終統計 ──────────────────────────────────────────────────
     print(

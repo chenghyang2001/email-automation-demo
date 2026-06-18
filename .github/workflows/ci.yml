@@ -43,6 +43,7 @@ jobs:
           python email_filter.py
           python summarizer.py
           python notion_creator.py
+          python line_briefer.py
 
       - name: Dry run
         env:
