@@ -85,7 +85,7 @@ email-automation-演練/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml             # PR/push 觸發：syntax check + dry-run
-│       └── daily-briefing.yml # 排程：每日 09:00 台灣時間（周一~五）
+│       └── daily-briefing.yml # 排程：每日 07:30 台灣時間（周一~五，UTC 23:30 隔日）
 └── .cache/
     ├── processed_ids.json # 已處理的 Gmail message_id（防重複）
     └── today_emails.json  # gmail_fetcher.py 預取快取
